@@ -1,19 +1,49 @@
 package br.com.triersistemas.cebolinha;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SplittableRandom;
 
 public abstract class PessoaFisica extends Pessoa {
 
-	@Override
-	public String getDocumento() {
-		List<String> cpf = new ArrayList<>();
-		cpf.add("113.586.329-60");
-		cpf.add("167.892.177-10");
-		cpf.add("029.121.060-01");
-		cpf.add("092.685.017.25");
-		cpf.add("016.718.020-26");
-		SplittableRandom r = new SplittableRandom();
-		return cpf.get(r.nextInt(0, cpf.size()));
-	}
+	private String cpf;
+
+    protected PessoaFisica() {
+        SplittableRandom r = new SplittableRandom();
+        List<Integer> digitos = new ArrayList<>();
+        for (int i = 0; i < 9; i++) {
+            digitos.add(r.nextInt(0, 10));
+        }
+        this.cpf = this.geraCpf(digitos);
+    }
+
+    protected PessoaFisica(final String nome, final LocalDate niver, final String cpf) {
+        super(nome, niver);
+        this.cpf = extractNumbers(cpf);
+    }
+
+    private String geraCpf(final List<Integer> digitos) {
+        digitos.add(super.mod11(digitos, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+        digitos.add(super.mod11(digitos, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+        return digitos.stream()
+                .map(Object::toString)
+                .reduce("", (p, e) -> p + e);
+    }
+
+    @Override
+    public boolean documentoValido() {
+        final List<Integer> digitos = extractNumbersToList(this.cpf);
+        if (digitos.size() == 11 && digitos.stream().distinct().count() > 1) {
+            return geraCpf(digitos.subList(0, 9)).equals(this.cpf);
+        }
+        return false;
+    }
+
+    @Override
+    public String getDocumento() {
+        if (this.cpf.length() == 11) {
+            return cpf.replaceAll("(\\d{3})(\\d{3})(\\d{3})(\\d{2})", "$1.$2.$3-$4");
+        }
+        return cpf;
+    }
 }
